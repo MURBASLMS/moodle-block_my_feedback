@@ -512,30 +512,27 @@ class block_my_feedback extends block_base {
      * @return array
      */
     public function get_supported_types(): array {
+
         $supported = [];
         $types = [
             'assign',
+            'coursework',
             'lesson',
             'manual',
             'quiz',
+            'turnitintooltwo',
             'workshop',
         ];
 
-        $pluginlist = \core_component::get_plugin_list('mod');
-
         // Only include optional module types if they are installed.
-        if (array_key_exists('coursework', $pluginlist)) {
-            $types[] = 'coursework';
-        }
-        if (array_key_exists('turnitintooltwo', $pluginlist)) {
-            $types[] = 'turnitintooltwo';
-        }
+        $installed = \core_component::get_plugin_list('mod');
 
         foreach ($types as $modname) {
-            if (\report_feedback_tracker\local\helper::is_supported_module($modname)) {
+            if (array_key_exists($modname, $installed) && \report_feedback_tracker\local\helper::is_supported_module($modname)) {
                 $supported[] = $modname;
             }
         }
+
         return $supported;
     }
 
