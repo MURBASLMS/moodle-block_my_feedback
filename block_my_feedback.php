@@ -457,8 +457,8 @@ class block_my_feedback extends block_base {
         // Limit to last 3 months.
         $since = strtotime('-3 month');
         // Construct the IN clause.
-        // Get supported module types from feedback_tracker.
-        $supported = \report_feedback_tracker\local\helper::get_supported_types();
+        // Get supported module types.
+        $supported = $this->get_supported_types();
         list($insql, $params) = $DB->get_in_or_equal($supported, SQL_PARAMS_NAMED);
 
         // Add other params.
@@ -504,6 +504,39 @@ class block_my_feedback extends block_base {
                 ORDER BY gg.timemodified DESC";
 
         return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Return an array of supported module types.
+     *
+     * @return array
+     */
+    public function get_supported_types(): array {
+        $supported = [];
+        $types = [
+            'assign',
+            'lesson',
+            'manual',
+            'quiz',
+            'workshop',
+        ];
+
+        $pluginlist = \core_component::get_plugin_list('mod');
+
+        // Only include optional module types if they are installed.
+        if (array_key_exists('coursework', $pluginlist)) {
+            $types[] = 'coursework';
+        }
+        if (array_key_exists('turnitintooltwo', $pluginlist)) {
+            $types[] = 'turnitintooltwo';
+        }
+
+        foreach ($types as $modname) {
+            if (\report_feedback_tracker\local\helper::is_supported_module($modname)) {
+                $supported[] = $modname;
+            }
+        }
+        return $supported;
     }
 
     /**
