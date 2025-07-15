@@ -18,6 +18,7 @@ use core_course\external\course_summary_exporter;
 use local_assess_type\assess_type; // UCL plugin.
 use mod_quiz\question\display_options;
 use report_feedback_tracker\local\admin as feedback_tracker; // UCL plugin.
+use report_feedback_tracker\local\helper as feedback_tracker_helper; // UCL plugin.
 
 /**
  * Block definition class for the block_my_feedback plugin.
@@ -254,14 +255,14 @@ class block_my_feedback extends block_base {
                 $assess->name = $mod->name;
                 $assess->coursename = $course->fullname;
                 $assess->url = new moodle_url('/mod/'. $mod->modname. '/view.php', ['id' => $cmid]);
-                // TODO - is this expensive?
+                // Todo - is this expensive?
                 // If so should we only do it once we know we want to display it?
                 $assess->icon = course_summary_exporter::get_course_image($course);
 
                 // Turnitin.
                 if ($assess->modname === 'turnitintooltwo') {
                     // Fetch parts.
-                    $turnitinparts = \report_feedback_tracker\local\helper::get_turnitin_parts($mod->instance);
+                    $turnitinparts = feedback_tracker_helper::get_turnitin_parts($mod->instance);
                     foreach ($turnitinparts as $turnitinpart) {
                         $turnitin = clone $assess;
                         $turnitin->partid = $turnitinpart->id;
@@ -273,7 +274,7 @@ class block_my_feedback extends block_base {
                     }
                 } else {
                     // Check mod has duedate and require marking.
-                    if (\report_feedback_tracker\local\helper::is_supported_module($mod->modname) &&
+                    if (feedback_tracker_helper::is_supported_module($mod->modname) &&
                             self::add_mod_data($mod, $assess)) {
                         $marking[] = $assess;
                     }
@@ -300,7 +301,7 @@ class block_my_feedback extends block_base {
      * @return bool
      */
     public static function add_mod_data(cm_info $mod, stdClass $assess): bool {
-        global $CFG, $DB;
+        global $DB;
 
         // Get duedate.
         if ($mod->modname === 'turnitintooltwo') {
@@ -325,7 +326,8 @@ class block_my_feedback extends block_base {
 
         // Check that mod has missing markings.
         $submitterids = array_column(feedback_tracker::get_module_submissions($mod), 'userid');
-        if (!$assess->requiremarking = feedback_tracker::count_missing_grades($mod, $submitterids, $gradeitemid)) {
+        $assess->requiremarking = feedback_tracker::count_missing_grades($mod, $submitterids, $gradeitemid, true);
+        if ($assess->requiremarking === 0) {
             return false;
         }
 
@@ -456,7 +458,9 @@ class block_my_feedback extends block_base {
         // Limit to last 3 months.
         $since = strtotime('-3 month');
         // Construct the IN clause.
-        list($insql, $params) = $DB->get_in_or_equal(['assign', 'quiz', 'turnitintooltwo'], SQL_PARAMS_NAMED);
+        // Get supported module types.
+        $supported = $this->get_supported_types();
+        list($insql, $params) = $DB->get_in_or_equal($supported, SQL_PARAMS_NAMED);
 
         // Add other params.
         $params['userid'] = $user->id;
@@ -501,6 +505,37 @@ class block_my_feedback extends block_base {
                 ORDER BY gg.timemodified DESC";
 
         return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Return an array of supported module types.
+     *
+     * @return array
+     */
+    public function get_supported_types(): array {
+
+        $supported = [];
+
+        $types = [
+            'assign',
+            'coursework',
+            'lesson',
+            'manual',
+            'quiz',
+            'turnitintooltwo',
+            'workshop',
+        ];
+
+        // Only include optional module types if they are installed.
+        $installed = \core_component::get_plugin_list('mod');
+        foreach ($types as $modname) {
+            if (array_key_exists($modname, $installed)
+                    && (PHPUNIT_TEST || feedback_tracker_helper::is_supported_module($modname))) {
+                $supported[] = $modname;
+            }
+        }
+
+        return $supported;
     }
 
     /**
