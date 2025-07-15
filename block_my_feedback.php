@@ -18,6 +18,7 @@ use core_course\external\course_summary_exporter;
 use local_assess_type\assess_type; // UCL plugin.
 use mod_quiz\question\display_options;
 use report_feedback_tracker\local\admin as feedback_tracker; // UCL plugin.
+use report_feedback_tracker\local\helper as feedback_tracker_helper; // UCL plugin.
 
 /**
  * Block definition class for the block_my_feedback plugin.
@@ -261,7 +262,7 @@ class block_my_feedback extends block_base {
                 // Turnitin.
                 if ($assess->modname === 'turnitintooltwo') {
                     // Fetch parts.
-                    $turnitinparts = \report_feedback_tracker\local\helper::get_turnitin_parts($mod->instance);
+                    $turnitinparts = feedback_tracker_helper::get_turnitin_parts($mod->instance);
                     foreach ($turnitinparts as $turnitinpart) {
                         $turnitin = clone $assess;
                         $turnitin->partid = $turnitinpart->id;
@@ -273,7 +274,7 @@ class block_my_feedback extends block_base {
                     }
                 } else {
                     // Check mod has duedate and require marking.
-                    if (\report_feedback_tracker\local\helper::is_supported_module($mod->modname) &&
+                    if (feedback_tracker_helper::is_supported_module($mod->modname) &&
                             self::add_mod_data($mod, $assess)) {
                         $marking[] = $assess;
                     }
@@ -514,6 +515,7 @@ class block_my_feedback extends block_base {
     public function get_supported_types(): array {
 
         $supported = [];
+
         $types = [
             'assign',
             'coursework',
@@ -526,9 +528,9 @@ class block_my_feedback extends block_base {
 
         // Only include optional module types if they are installed.
         $installed = \core_component::get_plugin_list('mod');
-
         foreach ($types as $modname) {
-            if (array_key_exists($modname, $installed) && \report_feedback_tracker\local\helper::is_supported_module($modname)) {
+            if (array_key_exists($modname, $installed)
+                    && (PHPUNIT_TEST || feedback_tracker_helper::is_supported_module($modname))) {
                 $supported[] = $modname;
             }
         }
