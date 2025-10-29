@@ -33,4 +33,3 @@ $plugin->dependencies = [
     'local_assess_type' => 2024091300,
     'report_feedback_tracker' => 2025010600,
 ];
-

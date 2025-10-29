@@ -28,7 +28,6 @@ use report_feedback_tracker\local\helper as feedback_tracker_helper; // UCL plug
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class block_my_feedback extends block_base {
-
     /**
      * @var array array of roles a marker may have.
      */
@@ -72,7 +71,9 @@ class block_my_feedback extends block_base {
     private static function get_marker_role_ids(): array {
         global $DB;
 
-        return $DB->get_fieldset_select('role', 'id',
+        return $DB->get_fieldset_select(
+            'role',
+            'id',
             'shortname IN (:role1, :role2, :role3, :role4)',
             [
                 'role1' => 'ucltutor',
@@ -91,7 +92,9 @@ class block_my_feedback extends block_base {
     private static function get_student_role_ids(): array {
         global $DB;
 
-        return $DB->get_fieldset_select('role', 'id',
+        return $DB->get_fieldset_select(
+            'role',
+            'id',
             'archetype IN (:role1)',
             [
                 'role1' => 'student',
@@ -146,7 +149,7 @@ class block_my_feedback extends block_base {
 
         if ($roles = self::$markerroles) {
             // Check if user has editingteacher role on any courses.
-            list($roles, $params) = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
+            [$roles, $params] = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
             $params['userid'] = $USER->id;
             $sql = "SELECT id
                 FROM {role_assignments}
@@ -186,7 +189,7 @@ class block_my_feedback extends block_base {
 
         if ($roles = self::$studentroles) {
             // Check if user has a student role on any courses.
-            list($roles, $params) = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
+            [$roles, $params] = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
             $params['userid'] = $USER->id;
             $sql = "SELECT id
                 FROM {role_assignments}
@@ -233,7 +236,6 @@ class block_my_feedback extends block_base {
 
             // Loop through assessments for this course.
             foreach ($summatives as $summative) {
-
                 // Skip if not a course module or cmid doesn't exist.
                 if ($summative->cmid == 0 || !in_array($summative->cmid, $cmids)) {
                     continue;
@@ -249,12 +251,12 @@ class block_my_feedback extends block_base {
                 }
 
                 // Template.
-                $assess = new stdClass;
+                $assess = new stdClass();
                 $assess->cmid = $cmid;
                 $assess->modname = $mod->modname;
                 $assess->name = $mod->name;
                 $assess->coursename = $course->fullname;
-                $assess->url = new moodle_url('/mod/'. $mod->modname. '/view.php', ['id' => $cmid]);
+                $assess->url = new moodle_url('/mod/' . $mod->modname . '/view.php', ['id' => $cmid]);
                 // Todo - is this expensive?
                 // If so should we only do it once we know we want to display it?
                 $assess->icon = course_summary_exporter::get_course_image($course);
@@ -274,8 +276,10 @@ class block_my_feedback extends block_base {
                     }
                 } else {
                     // Check mod has duedate and require marking.
-                    if (feedback_tracker_helper::is_supported_module($mod->modname) &&
-                            self::add_mod_data($mod, $assess)) {
+                    if (
+                        feedback_tracker_helper::is_supported_module($mod->modname) &&
+                        self::add_mod_data($mod, $assess)
+                    ) {
                         $marking[] = $assess;
                     }
                 }
@@ -305,7 +309,7 @@ class block_my_feedback extends block_base {
 
         // Get duedate.
         if ($mod->modname === 'turnitintooltwo') {
-            $duedate = $DB->get_field('turnitintooltwo_parts', 'dtdue', ['id' => $assess->partid], );
+            $duedate = $DB->get_field('turnitintooltwo_parts', 'dtdue', ['id' => $assess->partid]);
         } else {
             $duedate = feedback_tracker::get_duedate($mod);
         }
@@ -353,8 +357,11 @@ class block_my_feedback extends block_base {
         }
 
         // Check if the course has ended (with a 3-month grace period).
-        if (isset($course->enddate) &&
-            $course->enddate != 0 && time() > strtotime('+3 month', $course->enddate)) {
+        if (
+            isset($course->enddate) &&
+            $course->enddate != 0 &&
+            time() > strtotime('+3 month', $course->enddate)
+        ) {
             return false;
         }
 
@@ -414,7 +421,7 @@ class block_my_feedback extends block_base {
             $feedback->id = $f->gradeid;
             $feedback->releaseddate = date('jS M', $f->lastmodified);
             $feedback->name = $f->name;
-            $feedback->url = new moodle_url('/mod/'.$f->modname.'/view.php', ['id' => $f->cmid]);
+            $feedback->url = new moodle_url('/mod/' . $f->modname . '/view.php', ['id' => $f->cmid]);
 
             // Course.
             $course = $DB->get_record('course', ['id' => $f->course]);
@@ -460,7 +467,7 @@ class block_my_feedback extends block_base {
         // Construct the IN clause.
         // Get supported module types.
         $supported = $this->get_supported_types();
-        list($insql, $params) = $DB->get_in_or_equal($supported, SQL_PARAMS_NAMED);
+        [$insql, $params] = $DB->get_in_or_equal($supported, SQL_PARAMS_NAMED);
 
         // Add other params.
         $params['userid'] = $user->id;
@@ -529,8 +536,10 @@ class block_my_feedback extends block_base {
         // Only include optional module types if they are installed.
         $installed = \core_component::get_plugin_list('mod');
         foreach ($types as $modname) {
-            if (array_key_exists($modname, $installed)
-                    && (PHPUNIT_TEST || feedback_tracker_helper::is_supported_module($modname))) {
+            if (
+                array_key_exists($modname, $installed) &&
+                (PHPUNIT_TEST || feedback_tracker_helper::is_supported_module($modname))
+            ) {
                 $supported[] = $modname;
             }
         }
