@@ -205,8 +205,8 @@ class block_my_feedback extends block_base {
      */
     public static function fetch_marking(stdClass $user): ?array {
         global $DB;
-        // User courses.
-        $courses = enrol_get_all_users_courses($user->id, false, ['enddate']);
+        // Active user courses.
+        $courses = enrol_get_all_users_courses($user->id, true, ['enddate']);
         // Marking.
         $marking = [];
 
