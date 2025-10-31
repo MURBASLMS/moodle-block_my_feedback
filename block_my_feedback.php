@@ -474,6 +474,10 @@ class block_my_feedback extends block_base {
         $params['since'] = $since;
         $params['wfreleased'] = 'released'; // Has the grade been released?
 
+        // Make sure only submissions from active courses are returned.
+        $courses = enrol_get_all_users_courses($user->id, true, ['enddate']);
+        $params['courseids'] = implode(',', array_keys($courses));
+
         $unixtimestamp = time();
 
         // Query the modified grades / feedbacks for assignments, quizzes and turnitin.
@@ -509,6 +513,7 @@ class block_my_feedback extends block_base {
                         AND gi.hidden < $unixtimestamp
                         AND gg.timemodified >= :since AND gg.timemodified <= $unixtimestamp
                         AND gg.userid = :userid
+                        AND gi.courseid IN (:courseids)
                 ORDER BY gg.timemodified DESC";
 
         return $DB->get_records_sql($sql, $params);
