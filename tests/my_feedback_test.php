@@ -32,7 +32,6 @@ use core\context\course;
  * @coversDefaultClass \block_my_feedback
  */
 final class my_feedback_test extends advanced_testcase {
-
     public static function setUpBeforeClass(): void {
         require_once(__DIR__ . '/../../moodleblock.class.php');
         require_once(__DIR__ . '/../block_my_feedback.php');
@@ -144,14 +143,18 @@ final class my_feedback_test extends advanced_testcase {
             // Create for turnitintooltwo only if a data generator is present.
             if ($dmodule['modulename'] == 'turnitintooltwo') {
                 if (file_exists($CFG->dirroot . '/mod/turnitintooltwo/tests/generator/lib.php')) {
-                    $module = $this->getDataGenerator()->create_module($dmodule['modulename'],
-                        ['course' => $course->id, 'name' => $dmodule['name']]);
+                    $module = $this->getDataGenerator()->create_module(
+                        $dmodule['modulename'],
+                        ['course' => $course->id, 'name' => $dmodule['name']]
+                    );
                 } else {
                     continue;
                 }
             } else {
-                $module = $this->getDataGenerator()->create_module($dmodule['modulename'],
-                    ['course' => $course->id, 'name' => $dmodule['name']]);
+                $module = $this->getDataGenerator()->create_module(
+                    $dmodule['modulename'],
+                    ['course' => $course->id, 'name' => $dmodule['name']]
+                );
             }
             $coursemodule = get_coursemodule_from_instance($dmodule['modulename'], $module->id, $course->id);
 
@@ -274,7 +277,5 @@ final class my_feedback_test extends advanced_testcase {
         // Test the feedback as student2 - there should only be one.
         $feedback = $block->fetch_feedback($student2);
         $this->assertEquals(1, count($feedback), "Returning only 1 submission for student 2.");
-
     }
 }
-
